@@ -2,17 +2,46 @@
 const API_KEY = 'd0f1c7fd5d06f5fb0c1000088fea7eb8'; // OpenWeatherMap API 키
 const API_BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
-// DOM 요소들
-const currentTimeEl = document.getElementById('currentTime');
-const currentDateEl = document.getElementById('currentDate');
-const cityInputEl = document.getElementById('cityInput');
-const searchBtnEl = document.getElementById('searchBtn');
-const locationBtnEl = document.getElementById('locationBtn');
-const loadingEl = document.getElementById('loading');
-const errorMessageEl = document.getElementById('errorMessage');
-const currentWeatherEl = document.getElementById('currentWeather');
-const forecastContainerEl = document.getElementById('forecastContainer');
-const citiesGridEl = document.getElementById('citiesGrid');
+// DOM 요소들 - 성능을 위해 한 번만 쿼리
+const DOM = {
+    currentTime: document.getElementById('currentTime'),
+    currentDate: document.getElementById('currentDate'),
+    cityInput: document.getElementById('cityInput'),
+    searchBtn: document.getElementById('searchBtn'),
+    locationBtn: document.getElementById('locationBtn'),
+    loading: document.getElementById('loading'),
+    errorMessage: document.getElementById('errorMessage'),
+    currentWeather: document.getElementById('currentWeather'),
+    forecastContainer: document.getElementById('forecastContainer'),
+    citiesGrid: document.getElementById('citiesGrid'),
+    // 현재 날씨 요소들
+    currentTemp: document.getElementById('currentTemp'),
+    weatherIcon: document.getElementById('weatherIcon'),
+    weatherDesc: document.getElementById('weatherDesc'),
+    visibility: document.getElementById('visibility'),
+    humidity: document.getElementById('humidity'),
+    windSpeed: document.getElementById('windSpeed'),
+    feelsLike: document.getElementById('feelsLike')
+};
+
+// 기존 변수들을 DOM 객체로 대체
+const currentTimeEl = DOM.currentTime;
+const currentDateEl = DOM.currentDate;
+const cityInputEl = DOM.cityInput;
+const searchBtnEl = DOM.searchBtn;
+const locationBtnEl = DOM.locationBtn;
+const loadingEl = DOM.loading;
+const errorMessageEl = DOM.errorMessage;
+const currentWeatherEl = DOM.currentWeather;
+const forecastContainerEl = DOM.forecastContainer;
+const citiesGridEl = DOM.citiesGrid;
+const currentTempEl = DOM.currentTemp;
+const weatherIconEl = DOM.weatherIcon;
+const weatherDescEl = DOM.weatherDesc;
+const visibilityEl = DOM.visibility;
+const humidityEl = DOM.humidity;
+const windSpeedEl = DOM.windSpeed;
+const feelsLikeEl = DOM.feelsLike;
 
 // 한국 주요 도시 목록
 const koreanCities = [
@@ -136,43 +165,57 @@ const koreanCities = [
     { name: '서귀포', english: 'Seogwipo' }
 ];
 
-// 현재 날씨 요소들
-const currentTempEl = document.getElementById('currentTemp');
-const weatherIconEl = document.getElementById('weatherIcon');
-const weatherDescEl = document.getElementById('weatherDesc');
-const visibilityEl = document.getElementById('visibility');
-const humidityEl = document.getElementById('humidity');
-const windSpeedEl = document.getElementById('windSpeed');
-const feelsLikeEl = document.getElementById('feelsLike');
+// 날씨 아이콘 매핑 - 성능을 위해 객체로 미리 정의
+const WEATHER_ICONS = {
+    '01d': 'fas fa-sun',           // 맑음 (낮)
+    '01n': 'fas fa-moon',          // 맑음 (밤)
+    '02d': 'fas fa-cloud-sun',     // 약간 흐림 (낮)
+    '02n': 'fas fa-cloud-moon',    // 약간 흐림 (밤)
+    '03d': 'fas fa-cloud',         // 흐림
+    '03n': 'fas fa-cloud',
+    '04d': 'fas fa-cloud',         // 매우 흐림
+    '04n': 'fas fa-cloud',
+    '09d': 'fas fa-cloud-rain',   // 소나기
+    '09n': 'fas fa-cloud-rain',
+    '10d': 'fas fa-cloud-sun-rain', // 비 (낮)
+    '10n': 'fas fa-cloud-moon-rain', // 비 (밤)
+    '11d': 'fas fa-bolt',          // 뇌우
+    '11n': 'fas fa-bolt',
+    '13d': 'fas fa-snowflake',     // 눈
+    '13n': 'fas fa-snowflake',
+    '50d': 'fas fa-smog',          // 안개
+    '50n': 'fas fa-smog'
+};
 
-// 실시간 시계 업데이트
+// 시간 포맷팅 옵션 - 재사용을 위해 상수로 정의
+const TIME_FORMAT_OPTIONS = {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+};
+
+const DATE_FORMAT_OPTIONS = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long'
+};
+
+// 실시간 시계 업데이트 - 최적화된 버전
 function updateTime() {
     const now = new Date();
     
-    // 시간 포맷팅
-    const timeOptions = {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    };
-    currentTimeEl.textContent = now.toLocaleTimeString('ko-KR', timeOptions);
-    
-    // 날짜 포맷팅
-    const dateOptions = {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        weekday: 'long'
-    };
-    currentDateEl.textContent = now.toLocaleDateString('ko-KR', dateOptions);
+    // DOM 조작 최소화
+    currentTimeEl.textContent = now.toLocaleTimeString('ko-KR', TIME_FORMAT_OPTIONS);
+    currentDateEl.textContent = now.toLocaleDateString('ko-KR', DATE_FORMAT_OPTIONS);
 }
 
 // 시계 시작
 setInterval(updateTime, 1000);
 updateTime(); // 즉시 실행
 
-// 로딩 상태 관리
+// 로딩 상태 관리 - 최적화된 버전
 function showLoading() {
     loadingEl.classList.add('show');
     errorMessageEl.classList.remove('show');
@@ -187,67 +230,62 @@ function hideLoading() {
 }
 
 function showError(message) {
-    errorMessageEl.querySelector('p').textContent = message;
+    const errorText = errorMessageEl.querySelector('p');
+    if (errorText) {
+        errorText.textContent = message;
+    }
     errorMessageEl.classList.add('show');
     loadingEl.classList.remove('show');
     currentWeatherEl.style.display = 'none';
     forecastContainerEl.style.display = 'none';
 }
 
-// 날씨 아이콘 매핑
+// 날씨 아이콘 매핑 - 최적화된 버전
 function getWeatherIcon(weatherCode) {
-    const iconMap = {
-        '01d': 'fas fa-sun',           // 맑음 (낮)
-        '01n': 'fas fa-moon',          // 맑음 (밤)
-        '02d': 'fas fa-cloud-sun',     // 약간 흐림 (낮)
-        '02n': 'fas fa-cloud-moon',    // 약간 흐림 (밤)
-        '03d': 'fas fa-cloud',         // 흐림
-        '03n': 'fas fa-cloud',
-        '04d': 'fas fa-cloud',         // 매우 흐림
-        '04n': 'fas fa-cloud',
-        '09d': 'fas fa-cloud-rain',   // 소나기
-        '09n': 'fas fa-cloud-rain',
-        '10d': 'fas fa-cloud-sun-rain', // 비 (낮)
-        '10n': 'fas fa-cloud-moon-rain', // 비 (밤)
-        '11d': 'fas fa-bolt',          // 뇌우
-        '11n': 'fas fa-bolt',
-        '13d': 'fas fa-snowflake',     // 눈
-        '13n': 'fas fa-snowflake',
-        '50d': 'fas fa-smog',          // 안개
-        '50n': 'fas fa-smog'
-    };
-    return iconMap[weatherCode] || 'fas fa-question';
+    return WEATHER_ICONS[weatherCode] || 'fas fa-question';
 }
 
-// 현재 날씨 데이터 표시
+// 현재 날씨 데이터 표시 - 최적화된 버전
 function displayCurrentWeather(data) {
-    const temp = Math.round(data.main.temp);
-    const feelsLike = Math.round(data.main.feels_like);
-    const humidity = data.main.humidity;
-    const windSpeed = data.wind.speed;
-    const visibility = data.visibility ? (data.visibility / 1000).toFixed(1) : 'N/A';
-    const weather = data.weather[0];
+    const { main, wind, visibility, weather } = data;
+    const weatherInfo = weather[0];
     
-    currentTempEl.textContent = temp;
-    feelsLikeEl.textContent = feelsLike;
-    humidityEl.textContent = humidity;
-    windSpeedEl.textContent = windSpeed;
-    visibilityEl.textContent = visibility;
+    // 데이터 계산
+    const temp = Math.round(main.temp);
+    const feelsLike = Math.round(main.feels_like);
+    const visibilityKm = visibility ? (visibility / 1000).toFixed(1) : 'N/A';
     
-    weatherIconEl.innerHTML = `<i class="${getWeatherIcon(weather.icon)}"></i>`;
-    weatherDescEl.textContent = weather.description;
+    // DOM 업데이트 - 배치로 처리
+    const updates = [
+        [currentTempEl, temp],
+        [feelsLikeEl, feelsLike],
+        [humidityEl, main.humidity],
+        [windSpeedEl, wind.speed],
+        [visibilityEl, visibilityKm],
+        [weatherDescEl, weatherInfo.description]
+    ];
+    
+    updates.forEach(([element, value]) => {
+        if (element) element.textContent = value;
+    });
+    
+    // 아이콘 업데이트
+    if (weatherIconEl) {
+        weatherIconEl.innerHTML = `<i class="${getWeatherIcon(weatherInfo.icon)}"></i>`;
+    }
 }
 
-// 5일 예보 데이터 표시
+// 5일 예보 데이터 표시 - 최적화된 버전
 function displayForecast(data) {
-    forecastContainerEl.innerHTML = '';
+    if (!forecastContainerEl) return;
     
-    // 내일부터 5일간의 예보만 표시
-    const dailyForecasts = data.list.filter((item, index) => {
-        const date = new Date(item.dt * 1000);
-        const hour = date.getHours();
-        return hour === 12; // 정오 데이터만 사용
-    }).slice(0, 5);
+    // 내일부터 5일간의 예보만 표시 - 정오 데이터 필터링
+    const dailyForecasts = data.list
+        .filter(item => new Date(item.dt * 1000).getHours() === 12)
+        .slice(0, 5);
+    
+    // DocumentFragment 사용으로 DOM 조작 최적화
+    const fragment = document.createDocumentFragment();
     
     dailyForecasts.forEach(forecast => {
         const date = new Date(forecast.dt * 1000);
@@ -270,36 +308,44 @@ function displayForecast(data) {
             <div class="forecast-desc">${weather.description}</div>
         `;
         
-        forecastContainerEl.appendChild(forecastCard);
+        fragment.appendChild(forecastCard);
     });
+    
+    // 한 번에 DOM 업데이트
+    forecastContainerEl.innerHTML = '';
+    forecastContainerEl.appendChild(fragment);
 }
 
-// API 호출 함수
+// API 호출 함수 - 최적화된 버전
 async function fetchWeatherData(city) {
+    if (!city || !city.trim()) {
+        showError('도시명을 입력해주세요.');
+        return;
+    }
+    
     try {
         showLoading();
         
-        // 현재 날씨 API 호출
-        const currentWeatherResponse = await fetch(
-            `${API_BASE_URL}/weather?q=${city}&appid=${API_KEY}&units=metric&lang=kr`
-        );
+        // 병렬 API 호출로 성능 향상
+        const [currentWeatherResponse, forecastResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/weather?q=${city}&appid=${API_KEY}&units=metric&lang=kr`),
+            fetch(`${API_BASE_URL}/forecast?q=${city}&appid=${API_KEY}&units=metric&lang=kr`)
+        ]);
         
+        // 응답 상태 확인
         if (!currentWeatherResponse.ok) {
             throw new Error('도시를 찾을 수 없습니다.');
         }
-        
-        const currentWeatherData = await currentWeatherResponse.json();
-        
-        // 5일 예보 API 호출
-        const forecastResponse = await fetch(
-            `${API_BASE_URL}/forecast?q=${city}&appid=${API_KEY}&units=metric&lang=kr`
-        );
         
         if (!forecastResponse.ok) {
             throw new Error('예보 데이터를 불러올 수 없습니다.');
         }
         
-        const forecastData = await forecastResponse.json();
+        // JSON 파싱도 병렬로 처리
+        const [currentWeatherData, forecastData] = await Promise.all([
+            currentWeatherResponse.json(),
+            forecastResponse.json()
+        ]);
         
         // 데이터 표시
         displayCurrentWeather(currentWeatherData);
@@ -312,100 +358,135 @@ async function fetchWeatherData(city) {
     }
 }
 
-// 현재 위치 기반 날씨 조회
+// 현재 위치 기반 날씨 조회 - 최적화된 버전
 async function getCurrentLocationWeather() {
     if (!navigator.geolocation) {
         showError('위치 서비스가 지원되지 않습니다.');
         return;
     }
     
-    showLoading();
-    
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            try {
-                const { latitude, longitude } = position.coords;
-                
-                // 현재 날씨 API 호출 (좌표 기반)
-                const currentWeatherResponse = await fetch(
-                    `${API_BASE_URL}/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric&lang=kr`
-                );
-                
-                if (!currentWeatherResponse.ok) {
-                    throw new Error('현재 위치의 날씨 정보를 불러올 수 없습니다.');
-                }
-                
-                const currentWeatherData = await currentWeatherResponse.json();
-                
-                // 5일 예보 API 호출 (좌표 기반)
-                const forecastResponse = await fetch(
-                    `${API_BASE_URL}/forecast?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric&lang=kr`
-                );
-                
-                if (!forecastResponse.ok) {
-                    throw new Error('예보 데이터를 불러올 수 없습니다.');
-                }
-                
-                const forecastData = await forecastResponse.json();
-                
-                // 데이터 표시
-                displayCurrentWeather(currentWeatherData);
-                displayForecast(forecastData);
-                hideLoading();
-                
-            } catch (error) {
-                console.error('위치 기반 날씨 데이터 로딩 오류:', error);
-                showError(error.message);
-            }
-        },
-        (error) => {
-            console.error('위치 접근 오류:', error);
-            showError('위치 접근이 거부되었습니다.');
+    try {
+        showLoading();
+        
+        // 위치 정보 가져오기
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                timeout: 10000,
+                enableHighAccuracy: true
+            });
+        });
+        
+        const { latitude, longitude } = position.coords;
+        
+        // 병렬 API 호출
+        const [currentWeatherResponse, forecastResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric&lang=kr`),
+            fetch(`${API_BASE_URL}/forecast?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric&lang=kr`)
+        ]);
+        
+        if (!currentWeatherResponse.ok || !forecastResponse.ok) {
+            throw new Error('현재 위치의 날씨 정보를 불러올 수 없습니다.');
         }
-    );
+        
+        // JSON 파싱 병렬 처리
+        const [currentWeatherData, forecastData] = await Promise.all([
+            currentWeatherResponse.json(),
+            forecastResponse.json()
+        ]);
+        
+        // 데이터 표시
+        displayCurrentWeather(currentWeatherData);
+        displayForecast(forecastData);
+        hideLoading();
+        
+    } catch (error) {
+        console.error('위치 기반 날씨 데이터 로딩 오류:', error);
+        
+        let errorMessage = '위치 기반 날씨 정보를 불러올 수 없습니다.';
+        if (error.code === 1) {
+            errorMessage = '위치 접근이 거부되었습니다.';
+        } else if (error.code === 2) {
+            errorMessage = '위치 정보를 찾을 수 없습니다.';
+        } else if (error.code === 3) {
+            errorMessage = '위치 요청 시간이 초과되었습니다.';
+        }
+        
+        showError(errorMessage);
+    }
 }
 
-// 이벤트 리스너
-searchBtnEl.addEventListener('click', () => {
+// 이벤트 리스너 - 최적화된 버전
+function handleSearch() {
     const city = cityInputEl.value.trim();
     if (city) {
         fetchWeatherData(city);
         cityInputEl.value = '';
     }
-});
+}
 
-locationBtnEl.addEventListener('click', getCurrentLocationWeather);
+// 이벤트 리스너 등록
+searchBtnEl?.addEventListener('click', handleSearch);
+locationBtnEl?.addEventListener('click', getCurrentLocationWeather);
 
-cityInputEl.addEventListener('keypress', (e) => {
+cityInputEl?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
-        const city = cityInputEl.value.trim();
-        if (city) {
-            fetchWeatherData(city);
-            cityInputEl.value = '';
-        }
+        e.preventDefault();
+        handleSearch();
     }
 });
 
-// 한국 도시 버튼 생성
+// 한국 도시 버튼 생성 - 최적화된 버전
 function createKoreanCityButtons() {
-    citiesGridEl.innerHTML = '';
+    if (!citiesGridEl) return;
+    
+    // DocumentFragment 사용으로 DOM 조작 최적화
+    const fragment = document.createDocumentFragment();
     
     koreanCities.forEach(city => {
         const cityBtn = document.createElement('button');
         cityBtn.className = 'city-btn';
         cityBtn.textContent = city.name;
-        cityBtn.addEventListener('click', () => {
-            fetchWeatherData(city.english);
-        });
-        citiesGridEl.appendChild(cityBtn);
+        cityBtn.setAttribute('data-city', city.english);
+        cityBtn.setAttribute('aria-label', `${city.name} 날씨 조회`);
+        fragment.appendChild(cityBtn);
     });
+    
+    // 이벤트 위임 사용으로 성능 향상
+    citiesGridEl.addEventListener('click', (e) => {
+        const cityBtn = e.target.closest('.city-btn');
+        if (cityBtn) {
+            const cityName = cityBtn.getAttribute('data-city');
+            if (cityName) {
+                fetchWeatherData(cityName);
+            }
+        }
+    });
+    
+    // 한 번에 DOM 업데이트
+    citiesGridEl.innerHTML = '';
+    citiesGridEl.appendChild(fragment);
 }
 
-// 페이지 로드 시 기본 도시로 서울 날씨 표시
-window.addEventListener('load', () => {
-    fetchWeatherData('Seoul');
-    createKoreanCityButtons();
-});
+// 페이지 로드 시 초기화 - 최적화된 버전
+function initializeApp() {
+    try {
+        // 도시 버튼 생성
+        createKoreanCityButtons();
+        
+        // 기본 도시로 서울 날씨 표시
+        fetchWeatherData('Seoul');
+        
+        console.log('날씨 대시보드가 성공적으로 초기화되었습니다.');
+    } catch (error) {
+        console.error('앱 초기화 오류:', error);
+        showError('앱을 초기화하는 중 오류가 발생했습니다.');
+    }
+}
 
-// API 키가 설정되었습니다!
+// DOM이 완전히 로드된 후 실행
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
+}
 
